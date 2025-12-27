@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T Jain & Co - Task Tracker Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        :root {
+            --primary-color: #2563eb; --primary-dark: #1e40af; --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+            --bg-primary: #ffffff; --bg-secondary: #f9fafb; --text-primary: #1f2937; --text-secondary: #6b7280; --border: #e5e7eb;
+        }
+        [data-theme="night"] { 
+            --bg-primary: #1a1a1a; --bg-secondary: #2d2d2d; --text-primary: #ffffff; --text-secondary: #b0b0b0; --border: #404040; 
+        }
+        body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background: var(--bg-secondary); color: var(--text-primary); transition: all 0.3s ease; display: flex; flex-direction: column; min-height: 100vh; }
+        .login-screen { display: flex; justify-content: center; align-items: center; flex: 1; background: linear-gradient(135deg,#2563eb 0%,#1e40af 100%); }
+        .login-card { background: var(--bg-primary); border-radius: 12px; padding: 48px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px rgba(0,0,0,0.1); }
+        .login-title { font-size: 28px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; text-align: center; }
+        .login-subtitle { font-size: 14px; color: var(--text-secondary); text-align: center; margin-bottom: 32px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; text-transform: uppercase; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; background: var(--bg-primary); transition: border-color 0.2s; }
+        .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .btn { padding: 12px 24px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: var(--primary-color); color: white; width: 100%; margin-top: 16px; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; padding: 6px 12px; font-size: 12px; width: auto; }
+        .btn-danger { background: var(--danger); color: white; padding: 6px 12px; font-size: 12px; width: auto; }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; width: 100%; }
+        .btn-secondary:hover { background: var(--border); }
+        .hidden { display: none !important; }
+        .app-screen { display: flex; flex: 1; }
+        .sidebar { width: 280px; background: var(--bg-primary); border-right: 1px solid var(--border); padding: 24px; overflow-y: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .user-info { background: var(--bg-secondary); padding: 16px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--primary-color); }
+        .user-name { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+        .user-role { font-size: 12px; color: var(--text-secondary); }
+        .sidebar-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin: 24px 0 12px 0; }
+        .sidebar-title:first-child { margin-top: 0; }
+        .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg-secondary); }
+        .header { background: var(--bg-primary); border-bottom: 1px solid var(--border); padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .dashboard-title { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+        .content { flex: 1; padding: 24px; overflow-y: auto; }
+        .form-section { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .form-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 120px; gap: 12px; margin-bottom: 16px; }
+        .tasks-section { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: var(--bg-secondary); padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        tr:hover { background: var(--bg-secondary); }
+        .priority-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .priority-high { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .priority-medium { background: rgba(245,158,11,0.2); color: var(--warning); }
+        .priority-low { background: rgba(16,185,129,0.2); color: var(--success); }
+        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--bg-primary); border-radius: 8px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 25px rgba(0,0,0,0.1); max-height: 80vh; overflow-y: auto; }
+        .modal-header { font-size: 20px; font-weight: 700; margin-bottom: 24px; color: var(--text-primary); }
+        .export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .export-btn { border: 2px solid var(--border); padding: 12px 24px; }
+        .export-btn.active { border-color: var(--primary-color); background: var(--primary-color); color: white; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 8px; }
+        .error-msg { background: rgba(239,68,68,0.1); color: var(--danger); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid var(--danger); display: none; }
+        .success-msg { background: rgba(16,185,129,0.1); color: var(--success); padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid var(--success); display: none; }
+        .footer { text-align: center; padding: 16px; font-size: 11px; color: var(--text-secondary); border-top: 1px solid var(--border); background: var(--bg-primary); }
+        .footer a { color: var(--primary-color); text-decoration: none; }
+        .celebration { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--success); color: white; padding: 40px 60px; border-radius: 12px; font-size: 24px; font-weight: 700; z-index: 2000; animation: celebrate 2s ease-out; }
+        @keyframes celebrate { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(-50%, -150%); opacity: 0; } }
+        .confetti { position: fixed; z-index: 1999; }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } .app-screen { flex-direction: column; } .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); } .export-options { grid-template-columns: 1fr; } .header { flex-direction: column; gap: 16px; } }
+    </style>
+</head>
+<body data-theme="day">
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-title">📋 T Jain & Co</div>
+            <div class="login-subtitle">Professional Task Management System</div>
+            <div id="login-error" class="error-msg"></div>
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" id="login-email" class="form-control" placeholder="Enter your email">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="login-password" class="form-control" placeholder="Enter your password">
+            </div>
+            <button class="btn btn-primary" onclick="login()">🔐 Login</button>
+            <div style="text-align: center; margin-top: 24px; font-size: 12px; color: var(--text-secondary); padding: 12px; background: rgba(37,99,235,0.1); border-radius: 6px; border-left: 4px solid var(--primary-color);">
+                <div style="font-weight: 600; margin-bottom: 8px;">📧 Demo Accounts</div>
+                <div>Admin: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">admin@tjain.com</code> / <code>1234</code></div>
+                <div>Owner: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">owner@tjain.com</code> / <code>1234</code></div>
+                <div>User: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px;">user@tjain.com</code> / <code>1234</code></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Screen -->
+    <div id="app-screen" class="app-screen hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="user-info">
+                <div class="user-name" id="sidebar-user-name">User</div>
+                <div class="user-role" id="sidebar-user-role">Member</div>
+            </div>
+            <div id="admin-owner-section" style="display: none;">
+                <div class="sidebar-title">⚙️ Management</div>
+                <button class="btn btn-secondary" onclick="showUsersModal()" style="margin-bottom: 8px;">👥 Manage Users</button>
+                <button class="btn btn-secondary" onclick="showExportAllModal()">📊 Export All</button>
+            </div>
+            <div class="sidebar-title">📊 Stats</div>
+            <div style="background: var(--bg-secondary); padding: 16px; border-radius: 8px; border-left: 4px solid var(--success); text-align: center;">
+                <div style="font-weight: 600; margin-bottom: 8px;">Total Tasks</div>
+                <div style="font-size: 24px; font-weight: 700; color: var(--success);" id="total-tasks">0</div>
+            </div>
+            <div class="sidebar-title">🎨 Settings</div>
+            <button class="btn btn-secondary" id="theme-toggle" style="margin-bottom: 8px;">🌙 Night Mode</button>
+            <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div class="dashboard-title">📋 My Tasks</div>
+                <button class="btn btn-primary" onclick="showExportModal()" style="width: auto;">📤 Export</button>
+            </div>
+            <div class="content">
+                <!-- Add Task Section -->
+                <div class="form-section">
+                    <div class="form-title">➕ Add New Task</div>
+                    <div class="form-grid">
+                        <div class="form-group"><label class="form-label">Task Name</label><input type="text" id="task-name" class="form-control" placeholder="Task name"></div>
+                        <div class="form-group"><label class="form-label">Firm</label><input type="text" id="firm-name" class="form-control" placeholder="Firm name"></div>
+                        <div class="form-group"><label class="form-label">Work Type</label><input type="text" id="work-type" class="form-control" placeholder="GST, Audit, etc"></div>
+                        <div class="form-group"><label class="form-label">Due Date</label><input type="date" id="due-date" class="form-control"></div>
+                        <div class="form-group"><label class="form-label">Priority</label>
+                            <select id="priority" class="form-control">
+                                <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Assign To (Admin/Owner Only) -->
+                    <div id="assign-section" style="display: none; margin-bottom: 16px;">
+                        <label class="form-label">Assign To User</label>
+                        <select id="assign-to" class="form-control">
+                            <option value="">-- Assign to myself --</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="addTask()">➕ Add Task</button>
+                </div>
+
+                <!-- Tasks Table -->
+                <div class="tasks-section">
+                    <div style="padding: 16px 24px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); font-weight: 600; display: flex; justify-content: space-between;">
+                        <span>📋 Tasks</span> <span id="task-count" style="font-size: 14px; color: var(--text-secondary);">0 tasks</span>
+                    </div>
+                    <table id="tasks-table">
+                        <thead><tr><th>Task</th><th>Firm</th><th>Type</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="tasks-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <p style="margin: 0;">📊 Task Tracker Pro © 2025 | <a href="#">Designed by Rishav Kumar Jain</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">📤 Export Options</div>
+            <div class="export-options">
+                <button class="btn export-btn active" onclick="selectFormat('excel')">📊 Excel</button>
+                <button class="btn export-btn" onclick="selectFormat('pdf')">📄 PDF</button>
+            </div>
+            <div id="pdf-options" style="display: none; margin-bottom: 16px;">
+                <label class="form-label">PDF Orientation</label>
+                <div class="export-options">
+                    <button class="btn export-btn active" onclick="selectOrientation('portrait')">📄 Portrait</button>
+                    <button class="btn export-btn" onclick="selectOrientation('landscape')">📋 Landscape</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-secondary" onclick="closeModal('export-modal')" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmExport()" style="flex: 1;">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export All Modal (Admin/Owner Only) -->
+    <div id="export-all-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">📊 Export All Data</div>
+            <div class="export-options">
+                <button class="btn export-btn active" onclick="selectFormatAll('excel')">📊 Excel</button>
+                <button class="btn export-btn" onclick="selectFormatAll('pdf')">📄 PDF</button>
+            </div>
+            <div id="pdf-all-options" style="display: none; margin-bottom: 16px;">
+                <label class="form-label">PDF Orientation</label>
+                <div class="export-options">
+                    <button class="btn export-btn active" onclick="selectOrientationAll('portrait')">📄 Portrait</button>
+                    <button class="btn export-btn" onclick="selectOrientationAll('landscape')">📋 Landscape</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-secondary" onclick="closeModal('export-all-modal')" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmExportAll()" style="flex: 1;">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Modal (Admin/Owner Only) -->
+    <div id="users-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">👥 Manage Users</div>
+            <div id="users-error" class="error-msg"></div>
+            <div id="users-success" class="success-msg"></div>
+            <label class="form-label">Create New User</label>
+            <input type="text" id="new-user-name" class="form-control" placeholder="Full Name" style="margin-bottom: 12px;">
+            <input type="email" id="new-user-email" class="form-control" placeholder="Email" style="margin-bottom: 12px;">
+            <input type="password" id="new-user-password" class="form-control" placeholder="Password (min 4 chars)" style="margin-bottom: 12px;">
+            <label class="form-label">Role</label>
+            <select id="new-user-role" class="form-control" style="margin-bottom: 12px;">
+                <option value="user">👤 User</option>
+                <option value="owner">👑 Owner</option>
+            </select>
+            <button class="btn btn-primary" onclick="createUser()" style="margin-bottom: 24px;">➕ Create</button>
+            <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase;">Users</div>
+                <div id="users-list-container"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="closeModal('users-modal')" style="margin-top: 24px;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let users = JSON.parse(localStorage.getItem('tjain_users')) || [
+            { id: 1, name: 'Admin User', email: 'admin@tjain.com', password: '1234', role: 'admin', createdAt: new Date().toISOString() },
+            { id: 2, name: 'Owner User', email: 'owner@tjain.com', password: '1234', role: 'owner', createdAt: new Date().toISOString() },
+            { id: 3, name: 'Regular User', email: 'user@tjain.com', password: '1234', role: 'user', createdAt: new Date().toISOString() }
+        ];
+        let tasks = JSON.parse(localStorage.getItem('tjain_tasks')) || [];
+        let currentUser = null;
+        let theme = localStorage.getItem('theme') || 'day';
+        let exportFormat = 'excel';
+        let pdfOrientation = 'portrait';
+        let exportFormatAll = 'excel';
+        let pdfOrientationAll = 'portrait';
+
+        function saveData() {
+            localStorage.setItem('tjain_users', JSON.stringify(users));
+            localStorage.setItem('tjain_tasks', JSON.stringify(tasks));
+        }
+
+        function login() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                currentUser = user;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                updateUI();
+                loadTasks();
+                loadAssignUsers();
+            } else {
+                errorDiv.textContent = '❌ Invalid email or password';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('sidebar-user-name').textContent = currentUser.name;
+            const roleText = currentUser.role === 'admin' ? '👑 Administrator' : currentUser.role === 'owner' ? '💼 Owner' : '👤 Team Member';
+            document.getElementById('sidebar-user-role').textContent = roleText;
+            document.getElementById('admin-owner-section').style.display = (currentUser.role === 'admin' || currentUser.role === 'owner') ? 'block' : 'none';
+            document.getElementById('assign-section').style.display = (currentUser.role === 'admin' || currentUser.role === 'owner') ? 'block' : 'none';
+            applyTheme();
+        }
+
+        function loadAssignUsers() {
+            const assignSelect = document.getElementById('assign-to');
+            assignSelect.innerHTML = '<option value="">-- Assign to myself --</option>';
+            users.forEach(user => {
+                if (user.id !== currentUser.id) {
+                    assignSelect.innerHTML += `<option value="${user.id}">${user.name} (${user.role})</option>`;
+                }
+            });
+        }
+
+        function addTask() {
+            const assignToId = document.getElementById('assign-to').value ? parseInt(document.getElementById('assign-to').value) : currentUser.id;
+            const assignToUser = users.find(u => u.id === assignToId);
+
+            const task = {
+                id: Date.now(),
+                name: document.getElementById('task-name').value.trim(),
+                firm: document.getElementById('firm-name').value.trim(),
+                work: document.getElementById('work-type').value.trim(),
+                dueDate: document.getElementById('due-date').value,
+                priority: document.getElementById('priority').value,
+                userId: assignToId,
+                assignedBy: currentUser.name,
+                createdBy: currentUser.name,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            if (!task.name || !task.dueDate) {
+                alert('⚠️ Task name and due date required');
+                return;
+            }
+            
+            tasks.push(task);
+            saveData();
+            document.getElementById('task-name').value = '';
+            document.getElementById('firm-name').value = '';
+            document.getElementById('work-type').value = '';
+            document.getElementById('due-date').value = '';
+            document.getElementById('priority').value = 'medium';
+            document.getElementById('assign-to').value = '';
+            loadTasks();
+        }
+
+        function loadTasks() {
+            let tasksToShow = [];
+            if (currentUser.role === 'admin' || currentUser.role === 'owner') {
+                tasksToShow = tasks;
+            } else {
+                tasksToShow = tasks.filter(t => t.userId === currentUser.id);
+            }
+
+            const tbody = document.getElementById('tasks-tbody');
+            tbody.innerHTML = '';
+            
+            if (tasksToShow.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);">No tasks yet. Add one! 🚀</td></tr>';
+            } else {
+                tasksToShow.forEach(task => {
+                    const row = document.createElement('tr');
+                    const assignedUser = users.find(u => u.id === task.userId);
+                    const dueDate = new Date(task.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    dueDate.setHours(0, 0, 0, 0);
+                    const isOverdue = !task.completed && dueDate < today;
+                    const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                    const dueDateStr = dueDate.toLocaleDateString('en-IN');
+                    const dueDateDisplay = isOverdue ? `${dueDateStr} ⚠️ OVERDUE` : `${dueDateStr} (${daysUntilDue} days)`;
+
+                    row.innerHTML = `
+                        <td><strong>${task.name}</strong></td>
+                        <td>${task.firm || '-'}</td>
+                        <td>${task.work || '-'}</td>
+                        <td>${assignedUser ? assignedUser.name : '-'}</td>
+                        <td>${dueDateDisplay}</td>
+                        <td><span class="priority-badge priority-${task.priority}">${task.priority.toUpperCase()}</span></td>
+                        <td>${task.completed ? '✅ Completed' : '⏳ Pending'}</td>
+                        <td>
+                            <div class="action-buttons">
+                                ${!task.completed ? `<button class="btn-success" onclick="completeTask(${task.id})">✓</button>` : ''}
+                                ${currentUser.role === 'admin' || currentUser.role === 'owner' || currentUser.id === task.userId ? `<button class="btn-danger" onclick="deleteTask(${task.id})">🗑️</button>` : ''}
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            const userTaskCount = tasks.filter(t => t.userId === currentUser.id).length;
+            document.getElementById('task-count').textContent = userTaskCount + (userTaskCount === 1 ? ' task' : ' tasks');
+            document.getElementById('total-tasks').textContent = (currentUser.role === 'admin' || currentUser.role === 'owner') ? tasks.length : userTaskCount;
+        }
+
+        function completeTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completed = true;
+                saveData();
+                loadTasks();
+                celebrate();
+            }
+        }
+
+        function deleteTask(id) {
+            if (confirm('Delete task?')) {
+                tasks = tasks.filter(t => t.id !== id);
+                saveData();
+                loadTasks();
+            }
+        }
+
+        function celebrate() {
+            const celebration = document.createElement('div');
+            celebration.className = 'celebration';
+            celebration.textContent = '🎉 Task Completed! Great Job!';
+            document.body.appendChild(celebration);
+            
+            for (let i = 0; i < 20; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * window.innerWidth + 'px';
+                confetti.style.top = -10 + 'px';
+                confetti.textContent = ['🎉', '✨', '🎊', '⭐'][Math.floor(Math.random() * 4)];
+                confetti.style.fontSize = '24px';
+                confetti.style.animation = `fall ${2 + Math.random() * 2}s linear`;
+                document.body.appendChild(confetti);
+            }
+
+            setTimeout(() => celebration.remove(), 2000);
+        }
+
+        function showExportModal() {
+            document.getElementById('export-modal').classList.add('active');
+        }
+
+        function showExportAllModal() {
+            if (currentUser.role !== 'admin' && currentUser.role !== 'owner') {
+                alert('Admin/Owner only');
+                return;
+            }
+            document.getElementById('export-all-modal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function selectFormat(format) {
+            exportFormat = format;
+            document.querySelectorAll('#export-modal .export-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', (idx === 0 && format === 'excel') || (idx === 1 && format === 'pdf'));
+            });
+            document.getElementById('pdf-options').style.display = format === 'pdf' ? 'grid' : 'none';
+        }
+
+        function selectOrientation(orientation) {
+            pdfOrientation = orientation;
+            document.querySelectorAll('#pdf-options .export-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', (idx === 0 && orientation === 'portrait') || (idx === 1 && orientation === 'landscape'));
+            });
+        }
+
+        function confirmExport() {
+            const userTasks = tasks.filter(t => t.userId === currentUser.id);
+            if (exportFormat === 'excel') {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(userTasks.map(t => ({
+                    'Task': t.name, 'Firm': t.firm, 'Work': t.work, 
+                    'Due Date': new Date(t.dueDate).toLocaleDateString('en-IN'),
+                    'Priority': t.priority.toUpperCase(), 
+                    'Status': t.completed ? 'Completed' : 'Pending',
+                    'Assigned By': t.assignedBy
+                })));
+                XLSX.utils.book_append_sheet(wb, ws, 'My Tasks');
+                XLSX.writeFile(wb, `T-Jain-MyTasks-${new Date().toISOString().split('T')[0]}.xlsx`);
+            } else {
+                const content = document.createElement('div');
+                content.style.padding = '20px';
+                content.innerHTML = `
+                    <h2 style="color: #2563eb; margin-bottom: 20px;">📊 Task Report - ${currentUser.name}</h2>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead><tr style="background: #f9fafb;">
+                            <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: left;">Task</th>
+                            <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: left;">Firm</th>
+                            <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: left;">Due Date</th>
+                            <th style="border: 1px solid #e5e7eb; padding: 10px; text-align: left;">Status</th>
+                        </tr></thead>
+                        <tbody>
+                            ${userTasks.map(t => `<tr>
+                                <td style="border: 1px solid #e5e7eb; padding: 10px;">${t.name}</td>
+                                <td style="border: 1px solid #e5e7eb; padding: 10px;">${t.firm || '-'}</td>
+                                <td style="border: 1px solid #e5e7eb; padding: 10px;">${new Date(t.dueDate).toLocaleDateString('en-IN')}</td>
+                                <td style="border: 1px solid #e5e7eb; padding: 10px;">${t.completed ? '✅ Completed' : '⏳ Pending'}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                const opt = {
+                    margin: 10,
+                    filename: `T-Jain-Tasks-${new Date().toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { orientation: pdfOrientation, unit: 'mm', format: 'a4' }
+                };
+                html2pdf().set(opt).from(content).save();
+            }
+            closeModal('export-modal');
+        }
+
+        function selectFormatAll(format) {
+            exportFormatAll = format;
+            const btns = document.querySelectorAll('#export-all-modal > .modal-content > div:nth-child(2) > button');
+            btns.forEach((btn, idx) => {
+                btn.classList.toggle('active', (idx === 0 && format === 'excel') || (idx === 1 && format === 'pdf'));
+            });
+            document.getElementById('pdf-all-options').style.display = format === 'pdf' ? 'grid' : 'none';
+        }
+
+        function selectOrientationAll(orientation) {
+            pdfOrientationAll = orientation;
+            document.querySelectorAll('#pdf-all-options .export-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', (idx === 0 && orientation === 'portrait') || (idx === 1 && orientation === 'landscape'));
+            });
+        }
+
+        function confirmExportAll() {
+            if (exportFormatAll === 'excel') {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(tasks.map(t => {
+                    const user = users.find(u => u.id === t.userId);
+                    return {
+                        'User': user ? user.name : 'Unknown',
+                        'Task': t.name, 'Firm': t.firm, 'Work': t.work,
+                        'Due Date': new Date(t.dueDate).toLocaleDateString('en-IN'),
+                        'Priority': t.priority.toUpperCase(),
+                        'Status': t.completed ? 'Completed' : 'Pending'
+                    };
+                }));
+                XLSX.utils.book_append_sheet(wb, ws, 'All Tasks');
+                XLSX.writeFile(wb, `T-Jain-AllTasks-${new Date().toISOString().split('T')[0]}.xlsx`);
+            } else {
+                const content = document.createElement('div');
+                content.style.padding = '20px';
+                content.innerHTML = `
+                    <h2 style="color: #2563eb; margin-bottom: 20px;">📊 All Tasks Report</h2>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead><tr style="background: #f9fafb;">
+                            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">User</th>
+                            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">Task</th>
+                            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">Due Date</th>
+                            <th style="border: 1px solid #e5e7eb; padding: 8px; text-align: left;">Status</th>
+                        </tr></thead>
+                        <tbody>
+                            ${tasks.map(t => {
+                                const user = users.find(u => u.id === t.userId);
+                                return `<tr>
+                                    <td style="border: 1px solid #e5e7eb; padding: 8px;">${user ? user.name : 'Unknown'}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 8px;">${t.name}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 8px;">${new Date(t.dueDate).toLocaleDateString('en-IN')}</td>
+                                    <td style="border: 1px solid #e5e7eb; padding: 8px;">${t.completed ? '✅' : '⏳'}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                const opt = {
+                    margin: 10,
+                    filename: `T-Jain-AllTasks-${new Date().toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { orientation: pdfOrientationAll, unit: 'mm', format: 'a4' }
+                };
+                html2pdf().set(opt).from(content).save();
+            }
+            closeModal('export-all-modal');
+        }
+
+        function showUsersModal() {
+            if (currentUser.role !== 'admin' && currentUser.role !== 'owner') {
+                alert('Admin/Owner only');
+                return;
+            }
+            document.getElementById('users-modal').classList.add('active');
+            loadUsersList();
+        }
+
+        function createUser() {
+            const name = document.getElementById('new-user-name').value.trim();
+            const email = document.getElementById('new-user-email').value.trim();
+            const password = document.getElementById('new-user-password').value;
+            const role = document.getElementById('new-user-role').value;
+            const errorDiv = document.getElementById('users-error');
+            const successDiv = document.getElementById('users-success');
+
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            if (!name || !email || !password || password.length < 4) {
+                errorDiv.textContent = '⚠️ All fields required (password 4+ chars)';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (users.find(u => u.email === email)) {
+                errorDiv.textContent = '❌ Email already exists';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const newUser = {
+                id: Date.now(),
+                name: name,
+                email: email,
+                password: password,
+                role: role,
+                createdAt: new Date().toISOString()
+            };
+
+            users.push(newUser);
+            saveData();
+            loadUsersList();
+            loadAssignUsers();
+            
+            document.getElementById('new-user-name').value = '';
+            document.getElementById('new-user-email').value = '';
+            document.getElementById('new-user-password').value = '';
+            document.getElementById('new-user-role').value = 'user';
+            successDiv.textContent = '✅ User created successfully!';
+            successDiv.style.display = 'block';
+            setTimeout(() => successDiv.style.display = 'none', 3000);
+        }
+
+        function loadUsersList() {
+            const container = document.getElementById('users-list-container');
+            container.innerHTML = '';
+
+            users.forEach(user => {
+                if (user.id === currentUser.id) return;
+                const userDiv = document.createElement('div');
+                userDiv.className = 'user-item';
+                const roleIcon = user.role === 'admin' ? '👑' : user.role === 'owner' ? '💼' : '👤';
+                userDiv.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600;">${user.name}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${user.email} • ${roleIcon} ${user.role.toUpperCase()}</div>
+                    </div>
+                    <button class="btn-danger" onclick="deleteUser(${user.id})">Delete</button>
+                `;
+                container.appendChild(userDiv);
+            });
+        }
+
+        function deleteUser(userId) {
+            if (confirm('Delete user and all their tasks?')) {
+                users = users.filter(u => u.id !== userId);
+                tasks = tasks.filter(t => t.userId !== userId);
+                saveData();
+                loadUsersList();
+                loadAssignUsers();
+            }
+        }
+
+        function toggleTheme() {
+            theme = theme === 'day' ? 'night' : 'day';
+            document.documentElement.setAttribute('data-theme', theme);
+            document.body.setAttribute('data-theme', theme);
+            document.getElementById('theme-toggle').textContent = theme === 'day' ? '🌙 Night Mode' : '☀️ Day Mode';
+            localStorage.setItem('theme', theme);
+        }
+
+        function applyTheme() {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.body.setAttribute('data-theme', theme);
+            document.getElementById('theme-toggle').textContent = theme === 'day' ? '🌙 Night Mode' : '☀️ Day Mode';
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('app-screen').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('login-error').style.display = 'none';
+        }
+
+        // Add CSS animation for confetti
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fall {
+                to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('login-email').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+            document.getElementById('login-password').addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+            document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+            applyTheme();
+            saveData();
+        });
+    </script>
+</body>
+</html>
