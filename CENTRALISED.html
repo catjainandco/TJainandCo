@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Tracker Cloud</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        [data-theme="night"], body[data-theme="night"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border: #404040;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Login Screen */
+        .login-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        }
+
+        .login-card {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 48px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-primary);
+            background-color: var(--bg-primary);
+            transition: border-color 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            margin-top: 16px;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .login-footer button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            border-left: 4px solid var(--danger);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Main App */
+        .app-screen {
+            display: flex;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-primary);
+            border-right: 1px solid var(--border);
+            padding: 24px;
+            overflow-y: auto;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-title:first-child {
+            margin-top: 0;
+        }
+
+        .user-info {
+            background-color: var(--bg-secondary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-secondary);
+        }
+
+        .header {
+            background-color: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background-color: var(--bg-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background-color: var(--border);
+        }
+
+        .content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .form-section {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 120px;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .tasks-section {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .tasks-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            background-color: var(--bg-secondary);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background-color: var(--bg-secondary);
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        tbody tr:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .priority-medium {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .priority-low {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            background-color: var(--bg-primary);
+            margin-top: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .login-card {
+                padding: 32px 20px;
+            }
+
+            .app-screen {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body data-theme="day">
+
+<!-- Login Screen -->
+<div id="login-screen" class="login-screen">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-title">📋 Task Tracker</div>
+            <div class="login-subtitle">Cloud Collaboration Platform</div>
+        </div>
+        <div id="login-error" class="error-message hidden"></div>
+        <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="login-email" class="form-control" placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="login-password" class="form-control" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary" id="login-btn">🔐 Login</button>
+        <div class="login-footer" style="margin-top: 20px;">
+            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 6px; border-left: 4px solid var(--primary-color); text-align: center;">
+                <div style="font-size: 12px; color: var(--text-secondary);">💼 T Jain And Co Task Management</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- App Screen -->
+<div id="app-screen" class="app-screen hidden">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="user-info">
+            <div class="user-name" id="sidebar-user-name">User</div>
+            <div class="user-role" id="sidebar-user-role">Regular User</div>
+        </div>
+
+        <div class="sidebar-title">⚙️ Admin</div>
+        <div id="admin-section" style="display: none;">
+            <button class="btn btn-secondary" id="manage-users-btn" style="width: 100%; margin-bottom: 8px;">👥 Manage Users</button>
+            <button class="btn btn-secondary" id="export-all-btn" style="width: 100%; margin-bottom: 8px;">📊 Export All Data</button>
+        </div>
+
+        <div class="sidebar-title">⏱️ Quick Stats</div>
+        <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; border-left: 4px solid var(--success);">
+            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Tasks</div>
+            <div style="font-size: 20px; font-weight: 700; color: var(--success);" id="total-tasks">0</div>
+        </div>
+
+        <div class="sidebar-title">🎨 Settings</div>
+        <button class="btn btn-secondary" id="theme-toggle-btn" style="width: 100%; margin-bottom: 8px;">🌙 Night Mode</button>
+        <button class="btn btn-danger" id="logout-btn" style="width: 100%;">🚪 Logout</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div class="dashboard-title">📋 My Tasks</div>
+            <div class="header-actions">
+                <button class="btn-icon" id="export-options-btn" title="Export">📤</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Add Task Form -->
+            <div class="form-section">
+                <div class="form-title">➕ Add New Task</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Task Name</label>
+                        <input type="text" id="task-name" class="form-control" placeholder="Enter task...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Firm Name</label>
+                        <input type="text" id="firm-name" class="form-control" placeholder="Firm name...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Work Type</label>
+                        <input type="text" id="work-type" class="form-control" placeholder="Work type...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" id="due-date" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select id="priority" class="form-control">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="add-task-btn">Add Task</button>
+            </div>
+
+            <!-- Tasks Table -->
+            <div class="tasks-section">
+                <div class="tasks-header">
+                    <div>📋 Tasks List</div>
+                    <div id="task-count" style="font-size: 12px; color: var(--text-secondary);">0 tasks</div>
+                </div>
+                <table id="tasks-table">
+                    <thead>
+                        <tr>
+                            <th>Task Name</th>
+                            <th>Firm</th>
+                            <th>Work Type</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Created By</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasks-tbody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="footer">
+                <p style="margin: 0;">📊 Task Tracker Cloud © 2025 | Real-time Collaboration Platform</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal" id="export-modal">
+    <div class="modal-content">
+        <div class="modal-header">📤 Export Options</div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Format</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-secondary" id="export-pdf-opt" style="border: 2px solid var(--primary-color); width: 100%;">📄 PDF</button>
+                    <button class="btn btn-secondary" id="export-excel-opt" style="width: 100%;">📊 Excel</button>
+                </div>
+            </div>
+            <div id="pdf-options" class="form-group" style="display: none; margin-top: 16px;">
+                <label class="form-label">PDF Theme</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button class="btn btn-secondary" id="pdf-day" style="border: 2px solid var(--primary-color); width: 100%;">☀️ Day</button>
+                    <button class="btn btn-secondary" id="pdf-night" style="width: 100%;">🌙 Night</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="close-export-btn">Cancel</button>
+            <button class="btn btn-primary" id="confirm-export-btn">Export Now</button>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Users Modal -->
+<div class="modal" id="users-modal">
+    <div class="modal-content">
+        <div class="modal-header">👥 Manage Users</div>
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label class="form-label">Create New User</label>
+                <input type="email" id="new-user-email" class="form-control" placeholder="Email" style="margin-bottom: 8px;">
+                <input type="password" id="new-user-password" class="form-control" placeholder="Password" style="margin-bottom: 8px;">
+                <button class="btn btn-primary" id="create-user-btn" style="width: 100%;">Create User</button>
+            </div>
+            <div id="users-list" style="border-top: 1px solid var(--border); padding-top: 16px;">
+                <label class="form-label">Existing Users</label>
+                <div id="users-container"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="close-users-btn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== FIREBASE CONFIG =====
+    // PASTE YOUR FIREBASE CONFIG HERE
+    const firebaseConfig = {
+        apiKey: "AIzaSyDEMO_REPLACE_WITH_YOUR_API_KEY",
+        authDomain: "your-project.firebaseapp.com",
+        projectId: "your-project-id",
+        storageBucket: "your-project.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123456789:web:abcdef123456"
+    };
+
+    // Initialize Firebase
+    let app, auth, db;
+    try {
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+    } catch (e) {
+        console.error("Firebase Error:", e);
+        alert("⚠️ Firebase not configured! Please add your Firebase config to the script.");
+    }
+
+    // ===== STATE =====
+    let currentUser = null;
+    let currentUserData = null;
+    let exportFormat = 'pdf';
+    let pdfTheme = 'day';
+
+    // ===== INITIALIZATION =====
+    document.addEventListener('DOMContentLoaded', () => {
+        attachLoginListeners();
+        attachAppListeners();
+        checkAuthState();
+    });
+
+    function checkAuthState() {
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                await loadUserData();
+                showAppScreen();
+                loadTasks();
+            } else {
+                showLoginScreen();
+            }
+        });
+    }
+
+    async function loadUserData() {
+        try {
+            const docSnap = await db.collection('users').doc(currentUser.uid).get();
+            if (docSnap.exists) {
+                currentUserData = docSnap.data();
+            } else {
+                currentUserData = {
+                    email: currentUser.email,
+                    role: 'user',
+                    createdAt: new Date()
+                };
+                await db.collection('users').doc(currentUser.uid).set(currentUserData);
+            }
+            updateUserUI();
+        } catch (error) {
+            console.error("Error loading user:", error);
+        }
+    }
+
+    // ===== LOGIN FUNCTIONS =====
+    function attachLoginListeners() {
+        document.getElementById('login-btn').addEventListener('click', login);
+        document.getElementById('login-email').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('login-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+    }
+
+    function showError(msg) {
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.textContent = msg;
+        errorDiv.classList.remove('hidden');
+        setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+    }
+
+    async function login() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        if (!email || !password) {
+            showError('Please enter email and password');
+            return;
+        }
+
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+        } catch (error) {
+            showError('❌ ' + error.message);
+        }
+    }
+
+    function toggleSignup() {
+        const emailInput = document.getElementById('login-email');
+        const passwordInput = document.getElementById('login-password');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-toggle-btn');
+
+        if (loginBtn.textContent.includes('Login')) {
+            loginBtn.textContent = '✨ Create Account';
+            loginBtn.onclick = signup;
+            signupBtn.textContent = 'Back to Login';
+            document.querySelector('.login-subtitle').textContent = 'Create your account to get started';
+        } else {
+            loginBtn.textContent = '🔐 Login';
+            loginBtn.onclick = login;
+            signupBtn.textContent = 'Create Account';
+            document.querySelector('.login-subtitle').textContent = 'Cloud Collaboration Platform';
+        }
+
+        emailInput.value = '';
+        passwordInput.value = '';
+    }
+
+    async function signup() {
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        if (!email || !password) {
+            showError('Please enter email and password');
+            return;
+        }
+
+        if (password.length < 6) {
+            showError('Password must be at least 6 characters');
+            return;
+        }
+
+        try {
+            await auth.createUserWithEmailAndPassword(email, password);
+        } catch (error) {
+            showError('❌ ' + error.message);
+        }
+    }
+
+    // ===== APP FUNCTIONS =====
+    function attachAppListeners() {
+        document.getElementById('add-task-btn').addEventListener('click', addTask);
+        document.getElementById('logout-btn').addEventListener('click', logout);
+        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+        document.getElementById('export-options-btn').addEventListener('click', openExportModal);
+        document.getElementById('close-export-btn').addEventListener('click', closeExportModal);
+        document.getElementById('confirm-export-btn').addEventListener('click', confirmExport);
+        document.getElementById('export-pdf-opt').addEventListener('click', () => selectExportFormat('pdf'));
+        document.getElementById('export-excel-opt').addEventListener('click', () => selectExportFormat('excel'));
+        document.getElementById('pdf-day').addEventListener('click', () => selectPdfTheme('day'));
+        document.getElementById('pdf-night').addEventListener('click', () => selectPdfTheme('night'));
+        document.getElementById('manage-users-btn').addEventListener('click', openUsersModal);
+        document.getElementById('close-users-btn').addEventListener('click', closeUsersModal);
+        document.getElementById('create-user-btn').addEventListener('click', createNewUser);
+    }
+
+    function updateUserUI() {
+        document.getElementById('sidebar-user-name').textContent = currentUserData.email.split('@')[0];
+        document.getElementById('sidebar-user-role').textContent = currentUserData.role === 'admin' ? '👑 Administrator' : 'Regular User';
+        document.getElementById('admin-section').style.display = currentUserData.role === 'admin' ? 'block' : 'none';
+    }
+
+    function showLoginScreen() {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('app-screen').classList.add('hidden');
+    }
+
+    function showAppScreen() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-screen').classList.remove('hidden');
+    }
+
+    async function addTask() {
+        const name = document.getElementById('task-name').value.trim();
+        const firm = document.getElementById('firm-name').value.trim();
+        const work = document.getElementById('work-type').value.trim();
+        const dueDate = document.getElementById('due-date').value;
+        const priority = document.getElementById('priority').value;
+
+        if (!name || !dueDate) {
+            alert('Please fill in task name and due date');
+            return;
+        }
+
+        try {
+            await db.collection('tasks').add({
+                name,
+                firm,
+                work,
+                dueDate,
+                priority,
+                userId: currentUser.uid,
+                createdBy: currentUserData.email.split('@')[0],
+                completed: false,
+                createdAt: new Date()
+            });
+
+            document.getElementById('task-name').value = '';
+            document.getElementById('firm-name').value = '';
+            document.getElementById('work-type').value = '';
+            document.getElementById('due-date').value = '';
+            document.getElementById('priority').value = 'medium';
+
+            loadTasks();
+        } catch (error) {
+            console.error('Error adding task:', error);
+            alert('Error adding task');
+        }
+    }
+
+    async function loadTasks() {
+        try {
+            const query = db.collection('tasks').where('userId', '==', currentUser.uid);
+            query.onSnapshot((snapshot) => {
+                const tasks = [];
+                snapshot.forEach(doc => {
+                    tasks.push({ id: doc.id, ...doc.data() });
+                });
+
+                renderTasks(tasks);
+                document.getElementById('total-tasks').textContent = tasks.length;
+                document.getElementById('task-count').textContent = `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+            });
+        } catch (error) {
+            console.error('Error loading tasks:', error);
+        }
+    }
+
+    function renderTasks(tasks) {
+        const tbody = document.getElementById('tasks-tbody');
+        tbody.innerHTML = '';
+
+        if (tasks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 32px; color: var(--text-secondary);">No tasks yet. Add one to get started! 🚀</td></tr>';
+            return;
+        }
+
+        tasks.forEach(task => {
+            const row = document.createElement('tr');
+            const dueDate = new Date(task.dueDate);
+            const formattedDate = dueDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+            row.innerHTML = `
+                <td><strong>${escapeHtml(task.name)}</strong></td>
+                <td>${escapeHtml(task.firm)}</td>
+                <td>${escapeHtml(task.work)}</td>
+                <td>${formattedDate}</td>
+                <td><span class="priority-badge priority-${task.priority}">${task.priority.toUpperCase()}</span></td>
+                <td>${escapeHtml(task.createdBy)}</td>
+                <td>${task.completed ? '✅ Done' : '⏳ Pending'}</td>
+                <td>
+                    <div class="action-buttons">
+                        ${!task.completed ? `<button class="btn-success" onclick="completeTask('${task.id}')">✓ Done</button>` : ''}
+                        <button class="btn-danger" onclick="deleteTask('${task.id}')">🗑️ Delete</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    async function completeTask(taskId) {
+        try {
+            await db.collection('tasks').doc(taskId).update({ completed: true });
+        } catch (error) {
+            console.error('Error completing task:', error);
+        }
+    }
+
+    async function deleteTask(taskId) {
+        if (confirm('Delete this task?')) {
+            try {
+                await db.collection('tasks').doc(taskId).delete();
+            } catch (error) {
+                console.error('Error deleting task:', error);
+            }
+        }
+    }
+
+    function logout() {
+        auth.signOut().catch(error => console.error('Logout error:', error));
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'day' ? 'night' : 'day';
+        document.body.setAttribute('data-theme', newTheme);
+        document.getElementById('theme-toggle-btn').textContent = newTheme === 'day' ? '🌙 Night Mode' : '☀️ Day Mode';
+        localStorage.setItem('theme', newTheme);
+    }
+
+    // Load saved theme
+    window.addEventListener('load', () => {
+        const savedTheme = localStorage.getItem('theme') || 'day';
+        document.body.setAttribute('data-theme', savedTheme);
+        document.getElementById('theme-toggle-btn').textContent = savedTheme === 'day' ? '🌙 Night Mode' : '☀️ Day Mode';
+    });
+
+    function openExportModal() {
+        document.getElementById('export-modal').classList.add('active');
+    }
+
+    function closeExportModal() {
+        document.getElementById('export-modal').classList.remove('active');
+    }
+
+    function selectExportFormat(format) {
+        exportFormat = format;
+        document.getElementById('export-pdf-opt').style.borderColor = format === 'pdf' ? 'var(--primary-color)' : 'var(--border)';
+        document.getElementById('export-excel-opt').style.borderColor = format === 'excel' ? 'var(--primary-color)' : 'var(--border)';
+        document.getElementById('pdf-options').style.display = format === 'pdf' ? 'block' : 'none';
+    }
+
+    function selectPdfTheme(theme) {
+        pdfTheme = theme;
+        document.getElementById('pdf-day').style.borderColor = theme === 'day' ? 'var(--primary-color)' : 'var(--border)';
+        document.getElementById('pdf-night').style.borderColor = theme === 'night' ? 'var(--primary-color)' : 'var(--border)';
+    }
+
+    async function confirmExport() {
+        closeExportModal();
+        
+        if (exportFormat === 'pdf') {
+            exportToPDF();
+        } else {
+            exportToExcel();
+        }
+    }
+
+    function exportToPDF() {
+        const theme = pdfTheme === 'night';
+        const bgColor = theme ? '#1a1a1a' : '#ffffff';
+        const textColor = theme ? '#ffffff' : '#1f2937';
+
+        const pdfContent = document.createElement('div');
+        pdfContent.style.padding = '20px';
+        pdfContent.style.backgroundColor = bgColor;
+        pdfContent.style.color = textColor;
+        pdfContent.style.fontFamily = 'Arial, sans-serif';
+
+        const header = document.createElement('div');
+        header.style.marginBottom = '20px';
+        header.innerHTML = `
+            <h2 style="color: #2563eb; margin: 0 0 10px 0;">📊 Task Report</h2>
+            <div style="font-size: 13px;">
+                <div><strong>User:</strong> ${escapeHtml(currentUserData.email)}</div>
+                <div><strong>Generated:</strong> ${new Date().toLocaleDateString()}</div>
+            </div>
+        `;
+
+        const tableClone = document.getElementById('tasks-table').cloneNode(true);
+        tableClone.style.marginTop = '20px';
+        tableClone.style.width = '100%';
+        tableClone.style.borderCollapse = 'collapse';
+
+        const ths = tableClone.querySelectorAll('th');
+        ths.forEach(th => {
+            th.style.backgroundColor = theme ? '#2d2d2d' : '#f9fafb';
+            th.style.color = textColor;
+            th.style.padding = '10px';
+            th.style.borderBottom = '2px solid #2563eb';
+        });
+
+        const tds = tableClone.querySelectorAll('td');
+        tds.forEach(td => {
+            td.style.padding = '10px';
+            td.style.borderBottom = '1px solid ' + (theme ? '#404040' : '#e5e7eb');
+            td.style.color = textColor;
+        });
+
+        pdfContent.appendChild(header);
+        pdfContent.appendChild(tableClone);
+
+        const opt = {
+            margin: 10,
+            filename: `Tasks_${currentUser.uid}_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
+        };
+
+        html2pdf().set(opt).from(pdfContent).save();
+    }
+
+    async function exportToExcel() {
+        try {
+            const wb = XLSX.utils.book_new();
+
+            const metadataSheet = [
+                ['Task Report'],
+                [],
+                ['User', currentUserData.email],
+                ['Generated', new Date().toLocaleDateString()],
+            ];
+
+            const wsMetadata = XLSX.utils.aoa_to_sheet(metadataSheet);
+            wsMetadata['!cols'] = [{ wch: 30 }, { wch: 40 }];
+
+            const tableData = document.getElementById('tasks-table');
+            const ws = XLSX.utils.table_to_sheet(tableData);
+
+            XLSX.utils.book_append_sheet(wb, wsMetadata, 'Summary');
+            XLSX.utils.book_append_sheet(wb, ws, 'Tasks');
+
+            XLSX.writeFile(wb, `Tasks_${currentUser.uid}.xlsx`);
+        } catch (error) {
+            console.error('Excel export error:', error);
+        }
+    }
+
+    async function openUsersModal() {
+        if (currentUserData.role !== 'admin') {
+            alert('Only admins can manage users');
+            return;
+        }
+        document.getElementById('users-modal').classList.add('active');
+        loadUsersList();
+    }
+
+    function closeUsersModal() {
+        document.getElementById('users-modal').classList.remove('active');
+    }
+
+    async function loadUsersList() {
+        try {
+            const snapshot = await db.collection('users').get();
+            const container = document.getElementById('users-container');
+            container.innerHTML = '';
+
+            snapshot.forEach(doc => {
+                const user = doc.data();
+                const userDiv = document.createElement('div');
+                userDiv.style.padding = '10px';
+                userDiv.style.marginBottom = '8px';
+                userDiv.style.backgroundColor = 'var(--bg-secondary)';
+                userDiv.style.borderRadius = '6px';
+                userDiv.style.display = 'flex';
+                userDiv.style.justifyContent = 'space-between';
+                userDiv.style.alignItems = 'center';
+
+                userDiv.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600;">${escapeHtml(user.email)}</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">${user.role}</div>
+                    </div>
+                    <button class="btn-danger" onclick="deleteUser('${doc.id}')">Delete</button>
+                `;
+                container.appendChild(userDiv);
+            });
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    }
+
+    async function createNewUser() {
+        const email = document.getElementById('new-user-email').value.trim();
+        const password = document.getElementById('new-user-password').value;
+
+        if (!email || !password) {
+            alert('Please enter email and password');
+            return;
+        }
+
+        try {
+            const response = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + firebaseConfig.apiKey, {
+                method: 'POST',
+                body: JSON.stringify({
+                    email,
+                    password,
+                    returnSecureToken: true
+                })
+            });
+
+            const data = await response.json();
+            if (data.localId) {
+                await db.collection('users').doc(data.localId).set({
+                    email,
+                    role: 'user',
+                    createdAt: new Date()
+                });
+
+                document.getElementById('new-user-email').value = '';
+                document.getElementById('new-user-password').value = '';
+                alert('✅ User created successfully!');
+                loadUsersList();
+            }
+        } catch (error) {
+            console.error('Error creating user:', error);
+            alert('Error creating user');
+        }
+    }
+
+    async function deleteUser(userId) {
+        if (confirm('Delete this user?')) {
+            try {
+                await db.collection('users').doc(userId).delete();
+                loadUsersList();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+            }
+        }
+    }
+
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+
+</body>
+</html>
